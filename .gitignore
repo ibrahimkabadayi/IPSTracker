@@ -26,3 +26,7 @@ package-lock.json
 # Sqlite
 identifier.sqlite
 src/db/network.db
+
+#Ssh2
+host_key
+host_key.pub
