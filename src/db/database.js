@@ -14,9 +14,9 @@ export const initDb = async () => {
     await db.exec(`
         CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sourceIp TEXT NOT NULL,
-            sourcePort INTEGER NOT NULL,
-            targetPort INTEGER NOT NULL,
+            source_ip TEXT NOT NULL,
+            source_port INTEGER NOT NULL,
+            target_port INTEGER NOT NULL,
             protocol TEXT NOT NULL,
             started_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
             ended_at DATETIME
@@ -32,9 +32,9 @@ export const initDb = async () => {
         CREATE TABLE IF NOT EXISTS ssh_details (
             log_id INTEGER NOT NULL REFERENCES logs(id) ON DELETE CASCADE,
             attempted_username TEXT NOT NULL,
-            attempted_password  TEXT NOT NULL,
+            attempted_password TEXT,
             client_version TEXT,
-            auth_method TEXT,
+            method TEXT,
             public_key_fingerprint TEXT,
             commands_executed TEXT,
             raw_payload JSON NOT NULL
