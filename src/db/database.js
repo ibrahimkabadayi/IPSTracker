@@ -20,14 +20,15 @@ export const initDb = async () => {
             protocol TEXT NOT NULL,
             started_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
             ended_at DATETIME
-        ),
+        );
         CREATE TABLE IF NOT EXISTS http_details (
             log_id INTEGER NOT NULL REFERENCES logs(id) ON DELETE CASCADE,
             method TEXT NOT NULL,
             headers JSON NOT NULL,
             body_payload JSON NULL,
+            url TEXT NOT NULL,
             response_status INTEGER NOT NULL
-        ),
+        );
         CREATE TABLE IF NOT EXISTS ssh_details (
             log_id INTEGER NOT NULL REFERENCES logs(id) ON DELETE CASCADE,
             attempted_username TEXT NOT NULL,
@@ -37,16 +38,70 @@ export const initDb = async () => {
             public_key_fingerprint TEXT,
             commands_executed TEXT,
             raw_payload JSON NOT NULL
-        ),
+        );
         CREATE TABLE IF NOT EXISTS telnet_details (
             log_id INTEGER NOT NULL REFERENCES logs(id) ON DELETE CASCADE,
             attempted_username TEXT NOT NULL,
             attempted_password  TEXT NOT NULL,
             commands_executed TEXT,
             raw_payload JSON NOT NULL
-        )
+        );
+        CREATE TABLE IF NOT EXISTS blacklist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT NOT NULL UNIQUE,
+            request_count INTEGER NOT NULL,
+            scanned_ports TEXT NOT NULL,
+            scanned_port_count INTEGER NOT NULL,
+            reason TEXT,
+            is_threat INTEGER DEFAULT 1,
+            banned_date DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL        
+        );
     `);
 
     console.log('Database initialized.');
 }
 
+export const getAllLogs = () => {
+    const query = db.prepare(`
+        SELECT * FROM logs
+        ORDER BY ended_at DESC;`
+    );
+
+    return query.all();
+}
+
+export const addToBlacklist = ({ip, requestCount, set, reason}) => {
+    const query = db.prepare(`
+        INSERT INTO blacklist (ip, request_count, scanned_ports, scanned_port_count, reason, banned_date)
+        VALUES (@ip, @requestCount, @scannedPorts, @scannedPortCount, @reason, CURRENT_TIMESTAMP)
+        ON CONFLICT (ip) DO UPDATE SET
+            ip = excluded.ip,
+            request_count = @requestCount,
+            scanned_ports = @scannedPorts,
+            scanned_port_count = @scannedPortCount,
+            reason = @reason,
+            is_threat = 1,
+            banned_date = CURRENT_TIMESTAMP;
+    `);
+
+    const scannedPortCount = set.size;
+    const scannedPorts = JSON.stringify([...set])
+
+    return query.run({
+        ip,
+        requestCount,
+        scannedPorts,
+        scannedPortCount,
+        reason,
+    });
+}
+
+export const checkBlacklist = (ip) => {
+    const query = db.prepare(`
+        SELECT id, is_threat 
+        FROM blacklist
+        WHERE ip = @ip;
+    `);
+
+    return query.get({ip});
+}
