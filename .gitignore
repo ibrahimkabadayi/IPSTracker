@@ -19,3 +19,10 @@ Thumbs.db
 
 # Env
 .env
+
+# Express
+package-lock.json
+
+# Sqlite
+identifier.sqlite
+src/db/network.db
