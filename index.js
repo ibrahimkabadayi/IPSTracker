@@ -1,25 +1,36 @@
 import express from 'express';
 import * as dotenv from "dotenv";
-import {requestLogger} from "./src/middlewares/httpLogger";
-import {initSocket} from "./src/socket/socketHandler";
-import {initDb} from "./src/db/database";
+import {requestLogger} from "./src/middlewares/httpLogger.js";
+import {initSocket} from "./src/socket/socketHandler.js";
+import {initDb} from "./src/db/database.js";
+import * as http from "node:http";
+import {Server} from "socket.io";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*" }
+});
 
+app.use(express.json());
 app.use(requestLogger);
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
-initSocket(io);
+try {
+    initSocket(io);
+}catch (err){
+    console.error(err);
+}
 
-app.listen(PORT, async () => {
+
+server.listen(PORT, async () => {
     try{
         await initDb();
         console.log(`Server started on port ${PORT}`);
