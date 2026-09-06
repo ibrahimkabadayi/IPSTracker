@@ -61,6 +61,27 @@ export const initDb = async () => {
     console.log('Database initialized.');
 }
 
+const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
+    const prepareLogTable = db.prepare(`
+        INSERT INTO logs (source_ip, source_port, target_port, protocol)
+        VALUES (@sourceIp, @sourcePort, @targetPort, @protocol);
+    `);
+
+    const result = prepareLogTable.run({sourceIp, sourcePort, targetPort, protocol});
+    return result.lastInsertRowid;
+}
+
+export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload}) => {
+    const id = insertLog({sourceIp:sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'ssh'});
+
+    const prepareSshTable = db.prepare(`
+        INSERT INTO ssh_details (log_id, attempted_username, attempted_password, client_version, method, public_key_fingerprint, raw_payload)
+        VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload);
+    `);
+
+    return prepareSshTable.run({id, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload});
+}
+
 export const getAllLogs = () => {
     const query = db.prepare(`
         SELECT * FROM logs
