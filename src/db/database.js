@@ -67,7 +67,13 @@ const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
         VALUES (@sourceIp, @sourcePort, @targetPort, @protocol);
     `);
 
-    const result = prepareLogTable.run({sourceIp, sourcePort, targetPort, protocol});
+    const result = prepareLogTable.run({
+        sourceIp,
+        sourcePort,
+        targetPort,
+        protocol
+    });
+
     return result.lastInsertRowid;
 }
 
@@ -79,7 +85,13 @@ export const addTelnetLog = ({sourceIp, sourcePort, targetPort, attemptedUsernam
         VALUES (@id, @attemptedUsername, @attemptedPassword, @commandsExecuted, @rawPayload);
     `);
 
-    return query.run({id, attemptedUsername, attemptedPassword, commandsExecuted, rawPayload});
+    return query.run({
+        id,
+        attemptedUsername,
+        attemptedPassword,
+        commandsExecuted,
+        rawPayload
+    });
 }
 
 export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, bodyPayload, url, responseStatus}) => {
@@ -90,7 +102,14 @@ export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, b
         VALUES (@id, @method, @headers, @bodyPayload, @url, @responseStatus)
     `);
 
-    return query.run({id, method, headers, bodyPayload, url, responseStatus});
+    return query.run({
+        id,
+        method,
+        headers,
+        bodyPayload,
+        url,
+        responseStatus
+    });
 }
 
 export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload}) => {
@@ -101,7 +120,15 @@ export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, 
         VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload);
     `);
 
-    return prepareSshTable.run({id, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload});
+    return prepareSshTable.run({
+        id,
+        attemptedUsername,
+        attemptedPassword,
+        clientVersion,
+        method,
+        publicKeyFingerprint,
+        rawPayload: rawPayload ? JSON.stringify(rawPayload) : JSON.stringify({})
+    });
 }
 
 export const getAllLogs = () => {

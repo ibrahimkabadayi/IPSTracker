@@ -18,7 +18,7 @@ export function analyzeThreatLevel(ip) {
     else if (record.scannedPorts.size > maxPortScanCount) {
         reason = 'Exceeded max port scan count.';
     } else {
-        return {isThreat: false, reason: ""}
+        if (!record) return { isThreat: false, reason: "" };
     }
 
     addToBlacklist(
