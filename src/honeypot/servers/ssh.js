@@ -1,13 +1,21 @@
-import { Server } from 'ssh2';
+import ssh2 from 'ssh2';
+const { Server } = ssh2;
 import fs from 'fs';
 import crypto from 'crypto';
 import {addSshLog} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
+import * as dotenv from "dotenv";
 
+dotenv.config();
+
+const PASSWORD = process.env.HOST_KEY;
 
 export function startSshHoneypot(io) {
     const server = new Server({
-        hostKeys: [fs.readFileSync('host_key')]
+        hostKeys: [{
+            key: fs.readFileSync('host_key'),
+            passphrase: PASSWORD
+        }]
     }, (client) => {
         const ip = client._sock.remoteAddress;
         const port = client._sock.remotePort;

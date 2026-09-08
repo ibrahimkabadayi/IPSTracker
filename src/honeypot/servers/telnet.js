@@ -40,8 +40,19 @@ export function startTelnetHoneypot(io) {
                 hex: chunk.toString('hex')
             });
 
-            const cleanText = chunk.filter(byte => byte < 0xF0).toString('utf-8');
-            session.inputBuffer += cleanText;
+            const cleanBytes = chunk.filter(byte => byte < 0xF0);
+
+            for (const byte of cleanBytes) {
+                if (byte === 0x08 || byte === 0x7F) {
+                    if (session.inputBuffer.length > 0) {
+                        session.inputBuffer = session.inputBuffer.slice(0, -1);
+
+                        socket.write('\b \b');
+                    }
+                } else {
+                    session.inputBuffer += String.fromCharCode(byte);
+                }
+            }
 
             let newlineIndex;
             while ((newlineIndex = session.inputBuffer.search(/[\r\n]/)) !== -1) {
