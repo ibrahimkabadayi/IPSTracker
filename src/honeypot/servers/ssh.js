@@ -29,23 +29,29 @@ export function startSshHoneypot(io) {
             return;
         }
 
-        let rawPayload;
+        let rawPayloadHex = null;
 
         client.on('handshake', (negotiated) => {
             console.log('[RAW KEX PAYLOAD Buffer]:', negotiated.raw);
             console.log('[RAW KEX Hex]:', negotiated.raw?.toString('hex'));
-            rawPayload = negotiated.raw?.toString('hex');
+            rawPayloadHex = negotiated.raw?.toString('hex') || null;
         });
 
         client.on('authentication', (ctx) => {
             const clientVersion = client.identRaw || 'Unknown';
+
+            const rawPayloadJson = JSON.stringify({
+                kex_raw: rawPayloadHex,
+                auth_method: ctx.method,
+                timestamp: new Date().toISOString()
+            });
 
             const authAttempt = {
                 sourceIp: ip,
                 sourcePort: port,
                 targetPort: 2222,
                 clientVersion,
-                rawPayload,
+                rawPayload: rawPayloadJson,
                 attemptedUsername: ctx.username,
                 method: ctx.method,
             };
@@ -65,8 +71,13 @@ export function startSshHoneypot(io) {
                 console.log(`[AUTH-PROBE] IP: ${ip} (none method)`);
             }
 
-            addSshLog(authAttempt);
-            ctx.reject();
+            try {
+                addSshLog(authAttempt);
+            } catch (err) {
+                console.error('[DB ERROR]:', err);
+            }
+
+            ctx.reject(['password', 'keyboard-interactive']);
         });
 
         client.on('error', (err) => {
