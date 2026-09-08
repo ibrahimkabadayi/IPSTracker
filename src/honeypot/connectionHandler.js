@@ -4,7 +4,6 @@ import {isBlacklisted} from "./middlewares/trafficFilter.js";
 
 export function handleConnection(io, ip, port) {
     if (isBlacklisted(ip)) {
-        // Refuse Connection
         return;
     }
 
