@@ -5,5 +5,5 @@ import {startTelnetServer} from "./servers/telnet.js";
 export function startHoneypots(io) {
     startHttpServer(io);
     startSshHoneypot(io);
-    startTelnetServer(io);
+    startTelnetHoneypot(io);
 }
