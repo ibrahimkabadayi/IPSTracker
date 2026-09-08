@@ -5,6 +5,7 @@ import {initSocket} from "./src/socket/socketHandler.js";
 import {initDb} from "./src/db/database.js";
 import * as http from "node:http";
 import {Server} from "socket.io";
+import {startHoneypots} from "./src/honeypot/index.js";
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ try {
 server.listen(PORT, async () => {
     try{
         await initDb();
+        startHoneypots(io);
         console.log(`Server started on port ${PORT}`);
     }catch (e){
         console.error("Database connection error:", e.message);

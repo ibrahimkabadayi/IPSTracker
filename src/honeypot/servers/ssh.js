@@ -15,6 +15,12 @@ export function startSshHoneypot(io) {
 
         console.log(`\n[+] New Connection: ${ip}:${port} (${family})`);
 
+        if (!handleConnection(io, ip, 2222)) {
+            console.log(`[-] Connection blocked by handleConnection: ${ip}`);
+            client._sock?.destroy();
+            return;
+        }
+
         let rawPayload;
 
         client.on('handshake', (negotiated) => {
@@ -51,14 +57,13 @@ export function startSshHoneypot(io) {
                 console.log(`[AUTH-PROBE] IP: ${ip} (none method)`);
             }
 
-            handleConnection(io, ip, 2222);
             addSshLog(authAttempt);
             ctx.reject();
         });
 
         client.on('error', (err) => {
             console.log(`[ERROR] IP: ${ip} (${err.message})`);
-        })
+        });
 
         client.on('end', () => {
             console.log('Client disconnected');

@@ -71,6 +71,17 @@ const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
     return result.lastInsertRowid;
 }
 
+export const addTelnetLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, commandsExecuted, rawPayload}) => {
+    const id = insertLog({sourceIp: sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'telnet'});
+
+    const query = db.prepare(`
+        INSERT INTO telnet_details (log_id, attempted_username, attempted_password, commands_executed, raw_payload) 
+        VALUES (@id, @attemptedUsername, @attemptedPassword, @commandsExecuted, @rawPayload);
+    `);
+
+    return query.run({id, attemptedUsername, attemptedPassword, commandsExecuted, rawPayload});
+}
+
 export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, bodyPayload, url, responseStatus}) => {
     const id = insertLog({sourceIp: sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'http'});
 

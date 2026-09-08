@@ -2,7 +2,6 @@ import http from 'http';
 import {addHttpLog} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 
-let totalSize = 0;
 const MAX_BODY_SIZE = 1024 * 1024;
 
 export function startHttpServer(io) {
@@ -14,9 +13,16 @@ export function startHttpServer(io) {
         const method = req.method;
         const headersJson = JSON.stringify(req.headers);
 
-        handleConnection(io, reqIp, localPort);
 
+        if (!handleConnection(io, reqIp, localPort)) {
+            res.writeHead(403);
+            res.end();
+            return;
+        }
+
+        let totalSize = 0;
         const chunks = [];
+
         req.on('data', (chunk) => {
             totalSize += chunk.length;
             if (totalSize > MAX_BODY_SIZE) {
@@ -58,5 +64,3 @@ export function startHttpServer(io) {
 
     server.listen(8080);
 }
-
-startHttpServer({ emit: () => {} });
