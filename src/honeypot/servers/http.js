@@ -16,6 +16,12 @@ export function startHttpServer(io) {
 
         handleConnection(io, reqIp, localPort);
 
+        if (!handleConnection(io, reqIp, localPort)) {
+            res.writeHead(403);
+            res.end();
+            return;
+        }
+
         const chunks = [];
         req.on('data', (chunk) => {
             totalSize += chunk.length;

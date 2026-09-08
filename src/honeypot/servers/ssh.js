@@ -15,6 +15,12 @@ export function startSshHoneypot(io) {
 
         console.log(`\n[+] New Connection: ${ip}:${port} (${family})`);
 
+        if (!handleConnection(io, ip, 2222)) {
+            console.log(`[-] Connection blocked by handleConnection: ${ip}`);
+            client._sock?.destroy();
+            return;
+        }
+
         let rawPayload;
 
         client.on('handshake', (negotiated) => {

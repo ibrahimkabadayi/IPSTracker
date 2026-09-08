@@ -4,7 +4,7 @@ import {isBlacklisted} from "./middlewares/trafficFilter.js";
 
 export function handleConnection(io, ip, port) {
     if (isBlacklisted(ip)) {
-        return;
+        return false;
     }
 
     recordAttempt(ip, port)
@@ -13,4 +13,6 @@ export function handleConnection(io, ip, port) {
     if (threatResult.isThreat) {
         io.emit('newAlert', {ip, ...threatResult})
     }
+
+    return true;
 }
