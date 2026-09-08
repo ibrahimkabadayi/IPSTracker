@@ -2,7 +2,11 @@ import http from 'http';
 import {addHttpLog} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 
-const MAX_BODY_SIZE = 1024 * 1024;
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
+const MAX_BODY_SIZE = process.env.MAX_BODY_SIZE;
 
 export function startHttpServer(io) {
     const server = http.createServer((req, res) => {
