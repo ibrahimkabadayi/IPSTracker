@@ -57,14 +57,13 @@ export function startSshHoneypot(io) {
                 console.log(`[AUTH-PROBE] IP: ${ip} (none method)`);
             }
 
-            handleConnection(io, ip, 2222);
             addSshLog(authAttempt);
             ctx.reject();
         });
 
         client.on('error', (err) => {
             console.log(`[ERROR] IP: ${ip} (${err.message})`);
-        })
+        });
 
         client.on('end', () => {
             console.log('Client disconnected');
