@@ -71,6 +71,17 @@ const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
     return result.lastInsertRowid;
 }
 
+export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, bodyPayload, url, responseStatus}) => {
+    const id = insertLog({sourceIp: sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'http'});
+
+    const query = db.prepare(`
+        INSERT INTO http_details (log_id, method, headers, body_payload, url, response_status)
+        VALUES (@id, @method, @headers, @bodyPayload, @url, @responseStatus)
+    `);
+
+    return query.run({id, method, headers, bodyPayload, url, responseStatus});
+}
+
 export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload}) => {
     const id = insertLog({sourceIp:sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'ssh'});
 
