@@ -101,7 +101,15 @@ export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, 
         VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload);
     `);
 
-    return prepareSshTable.run({id, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload});
+    return prepareSshTable.run({
+        id,
+        attemptedUsername,
+        attemptedPassword,
+        clientVersion,
+        method,
+        publicKeyFingerprint,
+        rawPayload: rawPayload ? JSON.stringify(rawPayload) : JSON.stringify({})
+    });
 }
 
 export const getAllLogs = () => {
