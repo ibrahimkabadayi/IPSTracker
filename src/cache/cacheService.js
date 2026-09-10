@@ -50,3 +50,13 @@ export function getAttemptData(ip) {
         scannedPorts: scannedPorts
     };
 }
+
+export function debugCacheSnapshot() {
+    const keys = cache.keys();
+    console.log("Keys:", keys);
+    const snapshot = {};
+    keys.forEach((key) => {
+        snapshot[key] = cache.get(key);
+    });
+    return snapshot;
+}

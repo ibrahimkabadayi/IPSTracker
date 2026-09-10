@@ -7,6 +7,7 @@ import * as http from "node:http";
 import {Server} from "socket.io";
 import {startHoneypots} from "./src/honeypot/index.js";
 import {startCacheMaintenanceTask} from "./src/jobs/cacheResetTask.js";
+import router from "./src/routes/logs.js";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ const io = new Server(server, {
 
 app.use(express.json());
 app.use(requestLogger);
+app.use('/api/logs', router);
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
