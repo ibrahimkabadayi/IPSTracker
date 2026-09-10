@@ -4,7 +4,7 @@ import { isBlacklisted } from "./middlewares/trafficFilter.js";
 
 export function handleConnection(io, ip, port) {
     if (isBlacklisted(ip)) {
-        console.log(`[BLACKLIST DROP] IP: ${ip} engellendi.`);
+        console.log(`[BLACKLIST DROP] IP: ${ip} dropped.`);
         return false;
     }
 

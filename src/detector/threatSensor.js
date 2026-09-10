@@ -11,23 +11,30 @@ export function analyzeThreatLevel(ip) {
     const record = getAttemptData(ip);
 
     let reason = '';
+    let isThreat = false;
 
     if (record.requestCount > maxRequestCount) {
         reason = 'Exceeded max request count.';
+        isThreat = true;
     }
     else if (record.scannedPorts.size > maxPortScanCount) {
         reason = 'Exceeded max port scan count.';
+        isThreat = true;
     } else {
         if (!record) return { isThreat: false, reason: "" };
     }
 
-    addToBlacklist(
-        {
-            ip: ip,
-            requestCount: record.requestCount,
-            set: record.scannedPorts,
-            reason: reason
-        });
+    if (isThreat) {
+        addToBlacklist(
+            {
+                ip: ip,
+                requestCount: record.requestCount,
+                set: record.scannedPorts,
+                reason: reason
+            });
 
-    return {isThreat: true, reason: reason};
+        return {isThreat: true, reason: reason};
+    } else {
+        return {isThreat: false, reason: ""}
+    }
 }

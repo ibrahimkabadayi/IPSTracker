@@ -66,5 +66,7 @@ export function startHttpServer(io) {
         });
     });
 
-    server.listen(8080);
+    server.listen(8080, '0.0.0.0', () => {
+        console.log('HTTP server listening on port 8080');
+    });
 }
