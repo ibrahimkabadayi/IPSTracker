@@ -20,6 +20,7 @@ export function startSshHoneypot(io) {
         const ip = client._sock.remoteAddress;
         const port = client._sock.remotePort;
         const family = client._sock.remoteFamily;
+        let attemptCount = 0;
 
         console.log(`\n[+] New Connection: ${ip}:${port} (${family})`);
 
@@ -57,10 +58,12 @@ export function startSshHoneypot(io) {
             };
 
             if (ctx.method === 'password') {
+                attemptCount++;
                 authAttempt.attemptedPassword = ctx.password;
                 console.log(`[AUTH-PASSWORD] IP: ${ip} | User: ${ctx.username} | Pass: ${ctx.password} | Client: ${clientVersion}`);
             }
             else if (ctx.method === 'publickey') {
+                attemptCount++;
                 const fingerprint = crypto.createHash('sha256').update(ctx.key.data).digest('base64');
                 authAttempt.keyAlgo = ctx.key.algo;
                 authAttempt.publicKeyFingerprint = `SHA256:${fingerprint}`;
@@ -77,7 +80,61 @@ export function startSshHoneypot(io) {
                 console.error('[DB ERROR]:', err);
             }
 
-            ctx.reject(['password', 'keyboard-interactive']);
+            if (attemptCount >= 3) {
+                ctx.accept();
+            } else {
+                ctx.reject(['password', 'keyboard-interactive']);
+            }
+        });
+
+        client.on('ready', () => {
+            console.log('[+] Client has entered the system, waiting for session...');
+
+            client.on('session', (accept, reject) => {
+                const session = accept();
+
+                session.on('exec', (accept, reject, info) => {
+                   console.log(`[EXEC COMMAND]: ${info.command}`);
+                   const stream = accept();
+                   stream.write('Permission denied\r\n');
+                   stream.exit(0);
+                   stream.end();
+                });
+
+                session.on('pty', (accept, reject, info) => {
+                    accept();
+                });
+
+                session.on('shell', (accept, reject) => {
+                    const stream = accept();
+
+                    stream.write('Welcome to Ubuntu 22.04 LTS\\r\\nroot@RouterOS v6.48')
+
+                    let inputBuffer = '';
+
+                    stream.on('data', (data) => {
+                       const char = data.toString('utf-8');
+
+                       if (char === '\r' || char === '\n') {
+                           const command = inputBuffer.trim();
+                           inputBuffer = '';
+
+                           console.log(`[ATTACKER COMMAND]: ${command}`);
+
+                           if (command === 'ls') {
+                               stream.write('\r\nfile.txt secret.env\r\nroot@honeypot:\n~# ');
+                           } else if (command === 'exit') {
+                               stream.end();
+                           } else {
+                               stream.write(`\r\nbash: ${command}: command not found\r\nroot@honeypot:~# `);
+                           }
+                       } else {
+                           inputBuffer += char;
+                           stream.write(char);
+                       }
+                    });
+                });
+            });
         });
 
         client.on('error', (err) => {
