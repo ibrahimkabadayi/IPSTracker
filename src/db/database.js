@@ -173,5 +173,13 @@ export const checkBlacklist = (ip) => {
         WHERE ip = @ip;
     `);
 
-    return query.get({ip});
+     const result = query.get({ip});
+
+     if (!result) {
+         return false;
+     } else {
+         const isThreat = Boolean(result.is_threat);
+         console.log(isThreat);
+         return isThreat;
+     }
 }
