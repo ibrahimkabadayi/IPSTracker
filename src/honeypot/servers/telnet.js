@@ -66,7 +66,7 @@ export function startTelnetHoneypot(io) {
             }
         });
 
-        socket.write(`RouterOS v6.48${CRLF}`);
+        socket.write(`Ubuntu 22.04.3 LTS${CRLF}ubuntu-server login: `);
 
         socket.on('close', () => {
             const payloadToSave = {
@@ -110,7 +110,9 @@ function handleSessionFlow(socket, session, line) {
         session.password = line;
         session.stage = 'SHELL';
 
-        socket.write(`${CRLF}Welcome to Linux (mips)${CRLF}# `);
+        socket.write(`${CRLF}Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-88-generic x86_64)${CRLF}${CRLF}`);
+        socket.write(`Last login: Fri Sep 11 18:22:04 2026 from 192.168.1.15${CRLF}`);
+        socket.write(`${session.username || 'root'}@ubuntu-server:~# `);
     }
     else if (session.stage === 'SHELL') {
         session.commands.push({
@@ -118,9 +120,8 @@ function handleSessionFlow(socket, session, line) {
             executed_at: new Date().toISOString()
         });
 
-        console.log(`[TELNET-CMD] Command: "${line}"`);
-
-        const { response, shouldExit } = executeFakeCommand(line, '# ');
+        const prompt = `${session.username || 'root'}@ubuntu-server:~# `;
+        const { response, shouldExit } = executeFakeCommand(line, prompt);
 
         socket.write(response);
 
