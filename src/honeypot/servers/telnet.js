@@ -1,6 +1,7 @@
 import net from 'net';
 import {addTelnetLog} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
+import {executeFakeCommand} from "../mockShell.js";
 
 const CRLF = '\r\n';
 
@@ -112,11 +113,6 @@ function handleSessionFlow(socket, session, line) {
         socket.write(`${CRLF}Welcome to Linux (mips)${CRLF}# `);
     }
     else if (session.stage === 'SHELL') {
-        if (!line) {
-            socket.write('# ');
-            return;
-        }
-
         session.commands.push({
             command: line,
             executed_at: new Date().toISOString()
@@ -124,14 +120,12 @@ function handleSessionFlow(socket, session, line) {
 
         console.log(`[TELNET-CMD] Command: "${line}"`);
 
-        if (line === 'sh' || line === 'shell') {
-            socket.write('# ');
-        } else if (line.includes('cat /proc/mounts')) {
-            socket.write(`rootfs / rootfs rw 0 0${CRLF}/dev/root / squashfs ro 0 0${CRLF}# `);
-        } else if (line === 'exit') {
+        const { response, shouldExit } = executeFakeCommand(line, '# ');
+
+        socket.write(response);
+
+        if (shouldExit) {
             socket.end();
-        } else {
-            socket.write('# ');
         }
     }
 }

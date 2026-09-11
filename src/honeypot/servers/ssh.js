@@ -5,10 +5,22 @@ import crypto from 'crypto';
 import {addSshLog} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import * as dotenv from "dotenv";
+import {executeFakeCommand} from "../mockShell.js";
 
 dotenv.config();
 
 const PASSWORD = process.env.HOST_KEY;
+
+const getClientVersion = (client) => {
+    return (
+        client._protocol?._clientIdentRaw?.toString().trim() ||
+        client._protocol?.clientIdentRaw?.toString().trim() ||
+        client._protocol?._identRaw?.toString().trim() ||
+        client._parser?._identRaw?.toString().trim() ||
+        client._parser?.header?.ident?.toString().trim() ||
+        'Unknown'
+    );
+};
 
 export function startSshHoneypot(io) {
     const server = new Server({
@@ -60,6 +72,27 @@ export function startSshHoneypot(io) {
                     method = 'password';
                     ctx.accept();
                 } else {
+                    try {
+                        addSshLog({
+                            sourceIp: ip,
+                            sourcePort: port,
+                            targetPort: 2222,
+                            clientVersion,
+                            rawPayload: JSON.stringify({
+                                kex_raw: rawPayloadHex,
+                                attempt: attemptCount,
+                                status: 'failed_auth'
+                            }),
+                            attemptedUsername: ctx.username,
+                            attemptedPassword: ctx.password,
+                            method: 'password',
+                            publicKeyFingerprint: null,
+                            commandsExecuted: JSON.stringify([])
+                        });
+                    } catch (err) {
+                        console.error('[DB ERROR - FAILED AUTH]:', err);
+                    }
+
                     ctx.reject(['password', 'publickey', 'keyboard-interactive']);
                 }
             }
@@ -114,13 +147,14 @@ export function startSshHoneypot(io) {
                 session.on('shell', (accept, reject) => {
                     const stream = accept();
                     let inputBuffer = '';
-
                     const prompt = `${successfulUser || 'root'}@ubuntu:~# `;
 
                     stream.write(`Welcome to Ubuntu 22.04 LTS\r\n\r\n${prompt}`);
 
                     stream.on('data', (data) => {
-                        for (const byte of data) {
+                        for (let i = 0; i < data.length; i++) {
+                            const byte = data[i];
+
                             if (byte === 0x08 || byte === 0x7F) {
                                 if (inputBuffer.length > 0) {
                                     inputBuffer = inputBuffer.slice(0, -1);
@@ -137,31 +171,23 @@ export function startSshHoneypot(io) {
                                         executed_at: new Date().toISOString(),
                                         type: 'shell'
                                     });
-                                    console.log(`[SSH-COMMAND] IP: ${ip} | Command: "${command}"`);
+                                    console.log(`[SSH-COMMAND] IP: ${ip} | Komut: "${command}"`);
 
-                                    if (command === 'exit') {
-                                        stream.write('\r\nlogout\r\n');
+                                    const { response, shouldExit } = executeFakeCommand(command, prompt);
+                                    stream.write(`\r\n${response}`);
+
+                                    if (shouldExit) {
                                         stream.end();
                                         return;
-                                    } else if (command === 'ls' || command === 'dir') {
-                                        stream.write('\r\nbackup.tar.gz  config.json  notes.txt\r\n');
-                                    } else if (command === 'id' || command === 'whoami') {
-                                        stream.write(`\r\nuid=0(${successfulUser || 'root'}) gid=0(root) groups=0(root)\r\n`);
-                                    } else if (command === 'uname -a') {
-                                        stream.write('\r\nLinux ubuntu-honeypot 5.15.0-88-generic #98-Ubuntu SMP x86_64 GNU/Linux\r\n');
-                                    } else {
-                                        stream.write(`\r\nbash: ${command}: command not found\r\n`);
                                     }
                                 } else {
-                                    stream.write('\r\n');
+                                    stream.write(`\r\n${prompt}`);
                                 }
-
-                                stream.write(prompt);
                             }
                             else if (byte >= 0x20 && byte <= 0x7E) {
                                 const char = String.fromCharCode(byte);
                                 inputBuffer += char;
-                                stream.write(char);
+                                stream.write(char); // Echo
                             }
                         }
                     });
@@ -197,7 +223,9 @@ export function startSshHoneypot(io) {
         });
 
         client.on('error', (err) => {
-            console.log(`[ERROR] IP: ${ip} (${err.message})`);
+            if (err.code !== 'ECONNRESET') {
+                console.log(`[ERROR] IP: ${ip} (${err.message})`);
+            }
         });
     });
 
@@ -205,14 +233,3 @@ export function startSshHoneypot(io) {
         console.log('SSH honeypot listening on port 2222')
     );
 }
-
-const getClientVersion = (client) => {
-    return (
-        client._protocol?._clientIdentRaw?.toString().trim() ||
-        client._protocol?.clientIdentRaw?.toString().trim() ||
-        client._protocol?._identRaw?.toString().trim() ||
-        client._parser?._identRaw?.toString().trim() ||
-        client._parser?.header?.ident?.toString().trim() ||
-        'Unknown'
-    );
-};
