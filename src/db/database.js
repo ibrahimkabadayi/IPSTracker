@@ -36,7 +36,7 @@ export const initDb = async () => {
             client_version TEXT,
             method TEXT,
             public_key_fingerprint TEXT,
-            commands_executed TEXT,
+            commands_executed JSON,
             raw_payload JSON NOT NULL
         );
         CREATE TABLE IF NOT EXISTS telnet_details (
@@ -112,12 +112,12 @@ export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, b
     });
 }
 
-export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload}) => {
+export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload, commandsExecuted}) => {
     const id = insertLog({sourceIp:sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'ssh'});
 
     const prepareSshTable = db.prepare(`
-        INSERT INTO ssh_details (log_id, attempted_username, attempted_password, client_version, method, public_key_fingerprint, raw_payload)
-        VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload);
+        INSERT INTO ssh_details (log_id, attempted_username, attempted_password, client_version, method, public_key_fingerprint, raw_payload, commands_executed)
+        VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload, @commandsExecuted);
     `);
 
     return prepareSshTable.run({
@@ -127,7 +127,8 @@ export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, 
         clientVersion,
         method,
         publicKeyFingerprint,
-        rawPayload: rawPayload ? JSON.stringify(rawPayload) : JSON.stringify({})
+        rawPayload: rawPayload ? JSON.stringify(rawPayload) : JSON.stringify({}),
+        commandsExecuted: commandsExecuted ? JSON.stringify(commandsExecuted) : JSON.stringify({})
     });
 }
 
