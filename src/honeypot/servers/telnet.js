@@ -1,5 +1,5 @@
 import net from 'net';
-import {addTelnetLog} from "../../db/database.js";
+import {addTelnetLog, closeLogSession} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import {executeFakeCommand} from "../mockShell.js";
 
@@ -83,8 +83,9 @@ export function startTelnetHoneypot(io) {
                 })
             };
 
-            console.log('Commands Executed:', payloadToSave.commandsExecuted);
-            console.log('Raw Payload (JSON):', payloadToSave.rawPayload);
+            const logId = addTelnetLog(payloadToSave);
+
+            closeLogSession(logId);
 
             addTelnetLog(payloadToSave);
         });

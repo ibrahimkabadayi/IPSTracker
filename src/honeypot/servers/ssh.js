@@ -2,7 +2,7 @@ import ssh2 from 'ssh2';
 const { Server } = ssh2;
 import fs from 'fs';
 import crypto from 'crypto';
-import {addSshLog} from "../../db/database.js";
+import {addSshLog, closeLogSession} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import * as dotenv from "dotenv";
 import {executeFakeCommand} from "../mockShell.js";
@@ -89,16 +89,17 @@ export function startSshHoneypot(io) {
                             sourcePort: port,
                             targetPort: 2222,
                             clientVersion,
-                            rawPayload: JSON.stringify({
+                            rawPayload: {
                                 kex_raw: rawPayloadHex,
                                 attempt: attemptCount,
                                 status: 'failed_auth'
-                            }),
+                            },
                             attemptedUsername: ctx.username,
                             attemptedPassword: ctx.password,
                             method: 'password',
                             publicKeyFingerprint: null,
-                            commandsExecuted: JSON.stringify([])
+                            commandsExecuted: [],
+                            isInstant: true
                         });
                     } catch (err) {
                         console.error('[DB ERROR - FAILED AUTH]:', err);
@@ -229,27 +230,31 @@ export function startSshHoneypot(io) {
         client.on('close', () => {
             console.log(`[-] [SSH] Client ended the session: ${ip}. Number of prompted commands: ${executedCommands.length}`);
 
-            const authLog = {
-                sourceIp: ip,
-                sourcePort: port,
-                targetPort: 2222,
-                clientVersion: client.identRaw || 'Unknown',
-                rawPayload: JSON.stringify({
-                    kex_raw: rawPayloadHex,
-                    total_commands: executedCommands.length,
-                    closed_at: new Date().toISOString()
-                }),
-                attemptedUsername: successfulUser,
-                attemptedPassword: successfulPass || null,
-                method: method,
-                publicKeyFingerprint: publicKeyFingerprint || null,
-                commandsExecuted: JSON.stringify(executedCommands)
-            };
+            if (successfulUser) {
+                const authLog = {
+                    sourceIp: ip,
+                    sourcePort: port,
+                    targetPort: 2222,
+                    clientVersion: client.identRaw || 'Unknown',
+                    rawPayload: {
+                        kex_raw: rawPayloadHex,
+                        total_commands: executedCommands.length,
+                        closed_at: new Date().toISOString()
+                    },
+                    attemptedUsername: successfulUser,
+                    attemptedPassword: successfulPass || null,
+                    method: method,
+                    publicKeyFingerprint: publicKeyFingerprint || null,
+                    commandsExecuted: executedCommands,
+                    isInstant: false
+                };
 
-            try {
-                addSshLog(authLog);
-            } catch (err) {
-                console.error('[DB ERROR]:', err);
+                try {
+                    const logId = addSshLog(authLog);
+                    closeLogSession(logId);
+                } catch (err) {
+                    console.error('[DB ERROR]:', err);
+                }
             }
 
             io.emit('threat:session', {
