@@ -2,6 +2,7 @@ import net from 'net';
 import {addTelnetLog, closeLogSession} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import {executeFakeCommand} from "../mockShell.js";
+import {HONEY_TOKENS} from "../honeyTokens.js";
 
 const CRLF = '\r\n';
 
@@ -110,6 +111,24 @@ function handleSessionFlow(socket, session, line, io) {
     else if (session.stage === 'PASSWORD') {
         session.password = line;
         session.stage = 'SHELL';
+
+        const isHoneyTokenUsed = (session.password === HONEY_TOKENS.BAIT_PASSWORD);
+
+        if (isHoneyTokenUsed) {
+            console.log(`🔥 [CRITICAL ALERT] HoneyToken Triggered! IP: ${session.ip} is trying the password from the HTTP .env trap!`);
+
+            io.emit('threat:alert', {
+                severity: 'CRITICAL',
+                type: 'HONEYTOKEN_TRIGGERED',
+                protocol: 'telnet',
+                ip: session.ip,
+                port: session.port,
+                username: session.username,
+                password: session.password,
+                message: 'Attacker used the credential leaked via HTTP/.env on SSH!',
+                timestamp: new Date().toISOString()
+            });
+        }
 
         io.emit('threat:auth', {
             protocol: 'telnet',

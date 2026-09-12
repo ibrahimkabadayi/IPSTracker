@@ -2,7 +2,7 @@ import http from 'http';
 import { addHttpLog } from "../../db/database.js";
 import { handleConnection } from "../connectionHandler.js";
 import * as dotenv from "dotenv";
-import {getApacheDefaultPage, getWordPressLoginPage} from "../fakeTemplates.js";
+import {getApache404Page, getApacheDefaultPage, getFakeEnvFile, getWordPressLoginPage} from "../fakeTemplates.js";
 
 dotenv.config();
 
@@ -60,7 +60,7 @@ function generateFakeResponse(method, url, credentials) {
         return {
             status: 200,
             headers: { 'Content-Type': 'text/plain', 'Server': 'Apache/2.4.52 (Ubuntu)' },
-            body: `APP_NAME=UbuntuProductionPortal\nAPP_ENV=production\nDB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_DATABASE=prod_db\nDB_USERNAME=root\nDB_PASSWORD=SuperSecretPass2026!\n`
+            body: getFakeEnvFile()
         };
     }
 
@@ -75,7 +75,7 @@ function generateFakeResponse(method, url, credentials) {
     return {
         status: 404,
         headers: defaultHeaders,
-        body: '<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN"><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.4.52 (Ubuntu) Server at 127.0.0.1 Port 8080</address></body></html>'
+        body: getApache404Page()
     };
 }
 

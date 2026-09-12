@@ -1,3 +1,5 @@
+import { HONEY_TOKENS } from './honeyTokens.js';
+
 export function getWordPressLoginPage(errorMessage = '') {
     const errorBlock = errorMessage
         ? `<div style="border-left:4px solid #d63638; background:#fff; padding:12px; margin-bottom:20px; box-shadow:0 1px 1px rgba(0,0,0,.04);"><p style="margin:0; font-family:sans-serif; font-size:13px;">${errorMessage}</p></div>`
@@ -32,8 +34,6 @@ export function getWordPressLoginPage(errorMessage = '') {
 </body>
 </html>`;
 }
-
-// src/honeypot/fakeTemplates.js
 
 export function getApacheDefaultPage() {
     return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -210,5 +210,38 @@ export function getApacheDefaultPage() {
       </div>
     </div>
   </body>
+</html>`;
+}
+
+export function getFakeEnvFile() {
+    return `APP_NAME=UbuntuProductionPortal
+APP_ENV=production
+APP_KEY=base64:48d8a7d18e5b4c10a36b
+APP_DEBUG=false
+APP_URL=http://localhost:8080
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=prod_db
+DB_USERNAME=${HONEY_TOKENS.BAIT_USER}
+DB_PASSWORD=${HONEY_TOKENS.BAIT_PASSWORD}
+
+CACHE_DRIVER=file
+QUEUE_CONNECTION=sync
+`;
+}
+
+export function getApache404Page() {
+    return `<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+<head>
+<title>404 Not Found</title>
+</head><body>
+<h1>Not Found</h1>
+<p>The requested URL was not found on this server.</p>
+<hr>
+<address>Apache/2.4.52 (Ubuntu) Server at 127.0.0.1 Port 8080</address>
+</body>
 </html>`;
 }
