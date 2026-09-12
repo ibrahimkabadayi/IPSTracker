@@ -9,15 +9,25 @@ import {startHoneypots} from "./src/honeypot/index.js";
 import {startCacheMaintenanceTask} from "./src/jobs/cacheResetTask.js";
 import router from "./src/routes/logs.js";
 import {testSocket} from "./testSocket.js";
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST']
+}));
+
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
 app.use(express.json());
