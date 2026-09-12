@@ -66,6 +66,17 @@ export function startSshHoneypot(io) {
                 attemptCount++;
                 console.log(`[AUTH-PASSWORD] IP: ${ip} | User: ${ctx.username} | Pass: ${ctx.password} | Client: ${clientVersion}`);
 
+                io.emit('threat:auth', {
+                    protocol: 'ssh',
+                    ip,
+                    port,
+                    username: ctx.username,
+                    password: ctx.password,
+                    status: attemptCount >= 3 ? 'accepted' : 'rejected',
+                    attempt: attemptCount,
+                    timestamp: new Date().toISOString()
+                });
+
                 if (attemptCount >= 3) {
                     successfulUser = ctx.username;
                     successfulPass = ctx.password;
@@ -110,6 +121,17 @@ export function startSshHoneypot(io) {
 
                 console.log(`[+] [PUBKEY ACCEPT]: ${ctx.username}`);
                 console.log(`[AUTH-PUBKEY] IP: ${ip} | User: ${ctx.username} | Algo: ${ctx.key.algo} | Fingerprint: SHA256:${fingerprint}`);
+
+                io.emit('threat:auth', {
+                    protocol: 'ssh',
+                    ip,
+                    port,
+                    username: ctx.username,
+                    method: 'publickey',
+                    fingerprint,
+                    status: 'accepted',
+                    timestamp: new Date().toISOString()
+                });
 
                 return ctx.accept();
             }
@@ -171,6 +193,15 @@ export function startSshHoneypot(io) {
                                         executed_at: new Date().toISOString(),
                                         type: 'shell'
                                     });
+
+                                    io.emit('threat:command', {
+                                        protocol: 'ssh',
+                                        ip,
+                                        command,
+                                        type: 'shell',
+                                        timestamp: new Date().toISOString()
+                                    });
+
                                     console.log(`[SSH-COMMAND] IP: ${ip} | Komut: "${command}"`);
 
                                     const { response, shouldExit } = executeFakeCommand(command, prompt);
@@ -220,6 +251,14 @@ export function startSshHoneypot(io) {
             } catch (err) {
                 console.error('[DB ERROR]:', err);
             }
+
+            io.emit('threat:session', {
+                protocol: 'ssh',
+                ip,
+                status: 'closed',
+                totalCommands: executedCommands.length,
+                timestamp: new Date().toISOString()
+            });
         });
 
         client.on('error', (err) => {

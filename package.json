@@ -17,6 +17,7 @@
     "net": "^1.0.2",
     "node-cache": "^5.1.2",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "ssh2": "^1.17.0"
   }
 }
