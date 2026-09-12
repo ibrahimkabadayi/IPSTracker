@@ -108,12 +108,31 @@ export function startHttpServer(io) {
         req.on('end', () => {
             const rawBody = Buffer.concat(chunks).toString();
             const credentials = extractCredentials(rawBody, req.headers);
+            const { username, password } = credentials;
 
-            if (method === 'POST' && (credentials.username || credentials.password)) {
+            if (method === 'POST' && (username || password)) {
                 console.log(`[HTTP-AUTH] IP: ${reqIp} | Form Login -> User: "${credentials.username}" | Pass: "${credentials.password}"`);
+                io.emit('threat:auth', {
+                    protocol: 'http',
+                    ip: reqIp,
+                    port: reqPort,
+                    username,
+                    password,
+                    url: reqUrl,
+                    status: 'harvested',
+                    timestamp: new Date().toISOString()
+                });
             }
 
             const fakeResponse = generateFakeResponse(method, reqUrl, credentials);
+
+            io.emit('threat:http_request', {
+                ip: reqIp,
+                method,
+                url: reqUrl,
+                status: fakeResponse.status,
+                timestamp: new Date().toISOString()
+            });
 
             res.writeHead(fakeResponse.status, fakeResponse.headers);
             res.end(fakeResponse.body);

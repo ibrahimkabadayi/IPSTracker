@@ -61,7 +61,7 @@ export function startTelnetHoneypot(io) {
                 session.inputBuffer = session.inputBuffer.slice(newlineIndex + 1).replace(/^[\r\n]+/, '');
 
                 if (line) {
-                    handleSessionFlow(socket, session, line);
+                    handleSessionFlow(socket, session, line, io);
                 }
             }
         });
@@ -100,7 +100,7 @@ export function startTelnetHoneypot(io) {
     });
 }
 
-function handleSessionFlow(socket, session, line) {
+function handleSessionFlow(socket, session, line, io) {
     if (session.stage === 'USERNAME') {
         session.username = line;
         session.stage = 'PASSWORD';
@@ -110,11 +110,33 @@ function handleSessionFlow(socket, session, line) {
         session.password = line;
         session.stage = 'SHELL';
 
+        io.emit('threat:auth', {
+            protocol: 'telnet',
+            ip: session.ip,
+            port: session.port,
+            username: session.username,
+            password: session.password,
+            status: 'accepted',
+            timestamp: new Date().toISOString()
+        });
+
         socket.write(`${CRLF}Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-88-generic x86_64)${CRLF}${CRLF}`);
         socket.write(`Last login: Fri Sep 11 18:22:04 2026 from 192.168.1.15${CRLF}`);
         socket.write(`${session.username || 'root'}@ubuntu-server:~# `);
     }
     else if (session.stage === 'SHELL') {
+        if (!line) {
+            socket.write(`${session.username || 'root'}@ubuntu-server:~# `);
+            return;
+        }
+
+        io.emit('threat:command', {
+            protocol: 'telnet',
+            ip: session.ip,
+            command: line,
+            timestamp: new Date().toISOString()
+        });
+
         session.commands.push({
             command: line,
             executed_at: new Date().toISOString()
