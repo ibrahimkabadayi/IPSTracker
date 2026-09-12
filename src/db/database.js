@@ -61,10 +61,10 @@ export const initDb = async () => {
     console.log('Database initialized.');
 }
 
-const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
+const insertLog = ({sourceIp, sourcePort, targetPort, protocol, isInstant = false}) => {
     const prepareLogTable = db.prepare(`
-        INSERT INTO logs (source_ip, source_port, target_port, protocol)
-        VALUES (@sourceIp, @sourcePort, @targetPort, @protocol);
+        INSERT INTO logs (source_ip, source_port, target_port, protocol, ended_at)
+        VALUES (@sourceIp, @sourcePort, @targetPort, @protocol, ${isInstant ? 'CURRENT_TIMESTAMP' : 'NULL'});
     `);
 
     const result = prepareLogTable.run({
@@ -75,27 +75,45 @@ const insertLog = ({sourceIp, sourcePort, targetPort, protocol}) => {
     });
 
     return result.lastInsertRowid;
-}
+};
+
+export const closeLogSession = (logId) => {
+    if (!logId) return;
+    const query = db.prepare(`
+        UPDATE logs 
+        SET ended_at = CURRENT_TIMESTAMP 
+        WHERE id = ?;
+    `);
+    return query.run(logId);
+};
 
 export const addTelnetLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, commandsExecuted, rawPayload}) => {
-    const id = insertLog({sourceIp: sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'telnet'});
+    const id = insertLog({sourceIp, sourcePort, targetPort, protocol: 'telnet'});
 
     const query = db.prepare(`
         INSERT INTO telnet_details (log_id, attempted_username, attempted_password, commands_executed, raw_payload) 
         VALUES (@id, @attemptedUsername, @attemptedPassword, @commandsExecuted, @rawPayload);
     `);
 
-    return query.run({
+    query.run({
         id,
         attemptedUsername,
         attemptedPassword,
         commandsExecuted,
         rawPayload
     });
-}
+
+    return id;
+};
 
 export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, bodyPayload, url, responseStatus}) => {
-    const id = insertLog({sourceIp: sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'http'});
+    const id = insertLog({
+        sourceIp,
+        sourcePort,
+        targetPort,
+        protocol: 'http',
+        isInstant: true
+    });
 
     const query = db.prepare(`
         INSERT INTO http_details (log_id, method, headers, body_payload, url, response_status)
@@ -110,17 +128,17 @@ export const addHttpLog = ({sourceIp, sourcePort, targetPort, method, headers, b
         url,
         responseStatus
     });
-}
+};
 
-export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload, commandsExecuted}) => {
-    const id = insertLog({sourceIp:sourceIp, sourcePort: sourcePort, targetPort: targetPort, protocol: 'ssh'});
+export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, attemptedPassword, clientVersion, method, publicKeyFingerprint, rawPayload, commandsExecuted, isInstant = false}) => {
+    const id = insertLog({sourceIp, sourcePort, targetPort, protocol: 'ssh', isInstant});
 
     const prepareSshTable = db.prepare(`
         INSERT INTO ssh_details (log_id, attempted_username, attempted_password, client_version, method, public_key_fingerprint, raw_payload, commands_executed)
         VALUES (@id, @attemptedUsername, @attemptedPassword, @clientVersion, @method, @publicKeyFingerprint, @rawPayload, @commandsExecuted);
     `);
 
-    return prepareSshTable.run({
+    prepareSshTable.run({
         id,
         attemptedUsername,
         attemptedPassword,
@@ -130,16 +148,19 @@ export const addSshLog = ({sourceIp, sourcePort, targetPort, attemptedUsername, 
         rawPayload: rawPayload ? JSON.stringify(rawPayload) : JSON.stringify({}),
         commandsExecuted: commandsExecuted ? JSON.stringify(commandsExecuted) : JSON.stringify({})
     });
-}
+
+    return id;
+};
 
 export const getAllLogs = () => {
     const query = db.prepare(`
-        SELECT * FROM logs
-        ORDER BY ended_at DESC;`
-    );
+        SELECT * FROM logs,
+        ROUND((julianday(ended_at) - julianday(started_at)) * 86400) AS session_duration_seconds
+        ORDER BY started_at DESC
+    `);
 
     return query.all();
-}
+};
 
 export const addToBlacklist = ({ip, requestCount, set, reason}) => {
     const query = db.prepare(`
@@ -184,3 +205,118 @@ export const checkBlacklist = (ip) => {
          return isThreat;
      }
 }
+
+export const getOverviewStats = () => {
+    const totalLogs = db.prepare(`SELECT COUNT(*) as total FROM logs`).get().total;
+
+    const protocolCounts = db.prepare(`
+        SELECT protocol, COUNT(*) as count 
+        FROM logs 
+        GROUP BY protocol
+    `).all();
+
+    const totalBlacklisted = db.prepare(`
+        SELECT COUNT(*) as total FROM blacklist WHERE is_threat = 1
+    `).get().total;
+
+    const last24Hours = db.prepare(`
+        SELECT COUNT(*) as count 
+        FROM logs 
+        WHERE started_at >= datetime('now', '-1 day')
+    `).get().count;
+
+    return {
+        totalAttacks: totalLogs,
+        last24Hours,
+        totalBlacklisted,
+        protocols: protocolCounts.reduce((acc, curr) => {
+            acc[curr.protocol] = curr.count;
+            return acc;
+        }, { ssh: 0, telnet: 0, http: 0 })
+    };
+};
+
+export const getTopCredentials = (limit = 10) => {
+    const topUsernames = db.prepare(`
+        SELECT username, COUNT(*) as count FROM (
+            SELECT attempted_username as username FROM ssh_details WHERE attempted_username IS NOT NULL AND attempted_username != ''
+            UNION ALL
+            SELECT attempted_username as username FROM telnet_details WHERE attempted_username IS NOT NULL AND attempted_username != ''
+        )
+        GROUP BY username
+        ORDER BY count DESC
+        LIMIT ?
+    `).all(limit);
+
+    const topPasswords = db.prepare(`
+        SELECT password, COUNT(*) as count FROM (
+            SELECT attempted_password as password FROM ssh_details WHERE attempted_password IS NOT NULL AND attempted_password != ''
+            UNION ALL
+            SELECT attempted_password as password FROM telnet_details WHERE attempted_password IS NOT NULL AND attempted_password != ''
+        )
+        GROUP BY password
+        ORDER BY count DESC
+        LIMIT ?
+    `).all(limit);
+
+    return { topUsernames, topPasswords };
+};
+
+export const getTopAttackerIps = (limit = 10) => {
+    return db.prepare(`
+        SELECT source_ip, COUNT(*) as attack_count, 
+               MIN(started_at) as first_seen, 
+               MAX(started_at) as last_seen
+        FROM logs
+        GROUP BY source_ip
+        ORDER BY attack_count DESC
+        LIMIT ?
+    `).all(limit);
+};
+
+export const getRecentCommands = (limit = 30) => {
+    const rows = db.prepare(`
+        SELECT l.source_ip, l.protocol, s.commands_executed, l.started_at
+        FROM logs l
+        JOIN ssh_details s ON l.id = s.log_id
+        WHERE s.commands_executed IS NOT NULL AND s.commands_executed != '[]' AND s.commands_executed != '{}'
+        UNION ALL
+        SELECT l.source_ip, l.protocol, t.commands_executed, l.started_at
+        FROM logs l
+        JOIN telnet_details t ON l.id = t.log_id
+        WHERE t.commands_executed IS NOT NULL AND t.commands_executed != '[]' AND t.commands_executed != '{}'
+        ORDER BY started_at DESC
+        LIMIT ?
+    `).all(limit);
+
+    const parsedCommands = [];
+    for (const row of rows) {
+        try {
+            const cmds = typeof row.commands_executed === 'string'
+                ? JSON.parse(row.commands_executed)
+                : row.commands_executed;
+
+            if (Array.isArray(cmds)) {
+                for (const item of cmds) {
+                    parsedCommands.push({
+                        ip: row.source_ip,
+                        protocol: row.protocol,
+                        command: item.command,
+                        executedAt: item.executed_at || row.started_at
+                    });
+                }
+            }
+        } catch {}
+    }
+
+    return parsedCommands.slice(0, limit);
+};
+
+export const getBlacklistLogs = () => {
+    return db.prepare(`
+        SELECT ip, request_count, scanned_ports, reason, banned_date 
+        FROM blacklist 
+        WHERE is_threat = 1
+        ORDER BY banned_date DESC
+    `).all();
+};
