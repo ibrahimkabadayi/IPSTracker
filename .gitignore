@@ -18,15 +18,15 @@ npm-debug.log*
 Thumbs.db
 
 # Env
-.env
+backend/.env
 
 # Express
-package-lock.json
+backend/package-lock.json
 
 # Sqlite
-identifier.sqlite
-src/db/network.db
+backend/identifier.sqlite
+backend/src/db/network.db
 
 #Ssh2
-host_key
-host_key.pub
+backend/host_key
+backend/host_key.pub

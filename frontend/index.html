@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honeypot SOC Threat Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Socket.io CDN -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+<header class="navbar">
+    <div class="brand">
+        <span class="pulse-icon"></span>
+        <h2>HONEYPOT CTI DASHBOARD</h2>
+    </div>
+    <div class="status-indicator">
+        <span id="socket-status" class="badge badge-offline">Offline</span>
+    </div>
+</header>
+
+<!-- Critical Alert Banner (Triggers on HoneyToken activation) -->
+<div id="critical-alert" class="critical-banner hidden">
+    <strong>🔥 CRITICAL THREAT ALERT:</strong> <span id="alert-msg"></span>
+</div>
+
+<main class="container">
+    <!-- 1. Metric Cards -->
+    <section class="metrics-grid">
+        <div class="card">
+            <h3>Total Attacks</h3>
+            <p id="metric-total" class="metric-value">0</p>
+        </div>
+        <div class="card">
+            <h3>Last 24 Hours</h3>
+            <p id="metric-24h" class="metric-value">0</p>
+        </div>
+        <div class="card">
+            <h3>Banned IPs</h3>
+            <p id="metric-banned" class="metric-value">0</p>
+        </div>
+        <div class="card">
+            <h3>Protocol Distribution</h3>
+            <div class="proto-counts">
+                <span>SSH: <b id="proto-ssh">0</b></span>
+                <span>TELNET: <b id="proto-telnet">0</b></span>
+                <span>HTTP: <b id="proto-http">0</b></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Live Threat Feed & Console -->
+    <section class="panels-grid">
+        <!-- Left: Live Event Feed Table -->
+        <div class="card panel">
+            <div class="panel-header">
+                <h3>Live Event Feed</h3>
+                <button id="clear-events" class="btn-clear">Clear</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Protocol</th>
+                        <th>Source IP</th>
+                        <th>Event / Details</th>
+                    </tr>
+                    </thead>
+                    <tbody id="events-table-body">
+                    <!-- Dynamic rows inserted via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right: Live Terminal Commands & Top Passwords -->
+        <div class="side-panels">
+            <div class="card panel terminal-panel">
+                <h3>Recent Executed Commands (Shell)</h3>
+                <div id="terminal-stream" class="terminal-body">
+                    <!-- Live commands stream here -->
+                </div>
+            </div>
+
+            <div class="card panel creds-panel">
+                <h3>Top Attempted Passwords</h3>
+                <ul id="top-passwords-list" class="styled-list">
+                    <!-- Populated via REST API -->
+                </ul>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
