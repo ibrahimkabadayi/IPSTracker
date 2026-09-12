@@ -3,6 +3,7 @@ import { addHttpLog } from "../../db/database.js";
 import { handleConnection } from "../connectionHandler.js";
 import * as dotenv from "dotenv";
 import {getApacheDefaultPage, getWordPressLoginPage} from "../fakeTemplates.js";
+import { HONEY_TOKENS } from "../honeyTokens.js";
 
 dotenv.config();
 
@@ -60,7 +61,7 @@ function generateFakeResponse(method, url, credentials) {
         return {
             status: 200,
             headers: { 'Content-Type': 'text/plain', 'Server': 'Apache/2.4.52 (Ubuntu)' },
-            body: `APP_NAME=UbuntuProductionPortal\nAPP_ENV=production\nDB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_DATABASE=prod_db\nDB_USERNAME=root\nDB_PASSWORD=SuperSecretPass2026!\n`
+            body: `APP_NAME=UbuntuProductionPortal\nAPP_ENV=production\nDB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_DATABASE=prod_db\nDB_USERNAME=${HONEY_TOKENS.BAIT_USER}\nDB_PASSWORD=${HONEY_TOKENS.BAIT_PASSWORD}\n`
         };
     }
 

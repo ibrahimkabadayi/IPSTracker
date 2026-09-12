@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import {addSshLog, closeLogSession} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import * as dotenv from "dotenv";
+import { HONEY_TOKENS } from "../honeyTokens.js";
 import {executeFakeCommand} from "../mockShell.js";
 
 dotenv.config();
@@ -66,21 +67,42 @@ export function startSshHoneypot(io) {
                 attemptCount++;
                 console.log(`[AUTH-PASSWORD] IP: ${ip} | User: ${ctx.username} | Pass: ${ctx.password} | Client: ${clientVersion}`);
 
+                const isHoneyTokenUsed = (ctx.password === HONEY_TOKENS.BAIT_PASSWORD);
+
+                if (isHoneyTokenUsed) {
+                    console.log(`🔥 [CRITICAL ALERT] HoneyToken Triggered! IP: ${ip} is trying the password from the HTTP .env trap!`);
+
+                    io.emit('threat:alert', {
+                        severity: 'CRITICAL',
+                        type: 'HONEYTOKEN_TRIGGERED',
+                        protocol: 'ssh',
+                        ip,
+                        port,
+                        username: ctx.username,
+                        password: ctx.password,
+                        message: 'Attacker used the credential leaked via HTTP/.env on SSH!',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+                const isAccepted = isHoneyTokenUsed || attemptCount >= 3;
+
                 io.emit('threat:auth', {
                     protocol: 'ssh',
                     ip,
                     port,
                     username: ctx.username,
                     password: ctx.password,
-                    status: attemptCount >= 3 ? 'accepted' : 'rejected',
+                    status: isAccepted ? 'accepted' : 'rejected',
+                    isHoneyToken: isHoneyTokenUsed,
                     attempt: attemptCount,
                     timestamp: new Date().toISOString()
                 });
 
-                if (attemptCount >= 3) {
+                if (isAccepted) {
                     successfulUser = ctx.username;
                     successfulPass = ctx.password;
-                    method = 'password';
+                    method = isHoneyTokenUsed ? 'honeytoken_password' : 'password';
                     ctx.accept();
                 } else {
                     try {
