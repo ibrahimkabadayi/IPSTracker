@@ -6,7 +6,7 @@
     <title>Honeypot SOC Threat Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <!-- Socket.io CDN -->
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
 </head>
 <body>
 <header class="navbar">
@@ -45,6 +45,21 @@
                 <span>SSH: <b id="proto-ssh">0</b></span>
                 <span>TELNET: <b id="proto-telnet">0</b></span>
                 <span>HTTP: <b id="proto-http">0</b></span>
+            </div>
+        </div>
+    </section>
+
+    <section class="charts-grid">
+        <div class="card chart-card">
+            <h3>Protocol Distribution</h3>
+            <div class="chart-wrapper">
+                <canvas id="protocolChart"></canvas>
+            </div>
+        </div>
+        <div class="card chart-card">
+            <h3>Most Attempted Passwords Distribution</h3>
+            <div class="chart-wrapper">
+                <canvas id="passwordChart"></canvas>
             </div>
         </div>
     </section>
@@ -92,6 +107,8 @@
         </div>
     </section>
 </main>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script src="script.js"></script>
 </body>

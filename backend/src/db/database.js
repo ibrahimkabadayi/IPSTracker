@@ -201,7 +201,6 @@ export const checkBlacklist = (ip) => {
          return false;
      } else {
          const isThreat = Boolean(result.is_threat);
-         console.log(isThreat);
          return isThreat;
      }
 }
