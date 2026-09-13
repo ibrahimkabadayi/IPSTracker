@@ -35,9 +35,10 @@
             <h3>Last 24 Hours</h3>
             <p id="metric-24h" class="metric-value">0</p>
         </div>
-        <div class="card">
+        <div class="card clickable-card" id="card-banned-ips" title="Click to view details">
             <h3>Banned IPs</h3>
             <p id="metric-banned" class="metric-value">0</p>
+            <span class="card-hint">Click to manage ↗</span>
         </div>
         <div class="card">
             <h3>Protocol Distribution</h3>
@@ -106,6 +107,29 @@
             </div>
         </div>
     </section>
+    <div id="blacklist-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Blacklist Management</h3>
+                <button id="close-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-container modal-table">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Blocked IP</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody id="blacklist-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
