@@ -94,4 +94,24 @@ async function refreshMetrics() {
 // Initial loads
 document.getElementById('clear-events').addEventListener('click', () => eventsTable.innerHTML = '');
 refreshMetrics();
-setInterval(refreshMetrics, 15000); // Refresh metrics every 15 seconds
+setInterval(refreshMetrics, 15000);
+
+async function loadInitialCommands() {
+    try {
+        const res = await fetch(`${API_BASE}/api/logs/recent-commands?limit=15`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+            json.data.reverse().forEach(item => {
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                line.innerHTML = `<span style="color:#8b949e">[${item.protocol}]</span> <span style="color:#58a6ff">${item.ip}:~#</span> ${item.command}`;
+                terminalStream.appendChild(line);
+            });
+            terminalStream.scrollTop = terminalStream.scrollHeight;
+        }
+    } catch (e) {
+        console.error("Error:", e);
+    }
+}
+
+loadInitialCommands();
