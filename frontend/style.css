@@ -46,3 +46,23 @@ th { background: #21262d; color: var(--text-muted); }
 .styled-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; }
 .btn-clear { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; }
 .btn-clear:hover { background: #21262d; color: #fff; }
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+}
+
+.chart-card {
+    display: flex;
+    flex-direction: column;
+    height: 300px;
+}
+
+.chart-wrapper {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    margin-top: 10px;
+}

@@ -1,14 +1,84 @@
 const API_BASE = 'http://localhost:3000';
 const socket = io(API_BASE);
 
-// Element References
 const socketStatus = document.getElementById('socket-status');
 const eventsTable = document.getElementById('events-table-body');
 const terminalStream = document.getElementById('terminal-stream');
 const criticalAlert = document.getElementById('critical-alert');
 const alertMsg = document.getElementById('alert-msg');
 
-// 1. Socket Connection Status
+let protocolChartInstance = null;
+let passwordChartInstance = null;
+
+function initCharts() {
+    const ctxProto = document.getElementById('protocolChart')?.getContext('2d');
+    if (ctxProto) {
+        protocolChartInstance = new Chart(ctxProto, {
+            type: 'doughnut',
+            data: {
+                labels: ['SSH', 'TELNET', 'HTTP'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#58a6ff', '#f0883e', '#7ee787'],
+                    borderColor: '#161b22',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#c9d1d9',
+                            font: { size: 12 },
+                            padding: 15,
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const ctxPass = document.getElementById('passwordChart')?.getContext('2d');
+    if (ctxPass) {
+        passwordChartInstance = new Chart(ctxPass, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Attempt Count',
+                    data: [],
+                    backgroundColor: '#f85149',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: { color: '#8b949e', stepSize: 1 },
+                        grid: { color: '#30363d' }
+                    },
+                    y: {
+                        ticks: { color: '#c9d1d9' },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+}
+
+initCharts();
+
 socket.on('connect', () => {
     socketStatus.textContent = 'LIVE';
     socketStatus.className = 'badge badge-online';
@@ -19,7 +89,6 @@ socket.on('disconnect', () => {
     socketStatus.className = 'badge badge-offline';
 });
 
-// 2. Live Event Listeners
 socket.on('threat:auth', (data) => {
     const detail = `User: <b>${data.username}</b> | Pass: <b>${data.password || '---'}</b> [${data.status}]`;
     addRow(data.timestamp, data.protocol, data.ip, detail, data.isHoneyToken ? 'color: #ff7b72;' : '');
@@ -30,7 +99,6 @@ socket.on('threat:command', (data) => {
     const detail = `Shell Command: <code>${data.command}</code>`;
     addRow(data.timestamp, data.protocol, data.ip, detail);
 
-    // Print to terminal display
     const line = document.createElement('div');
     line.className = 'terminal-line';
     line.innerHTML = `<span style="color:#8b949e">[${data.protocol}]</span> <span style="color:#58a6ff">${data.ip}:~#</span> ${data.command}`;
@@ -64,7 +132,6 @@ function addRow(time, proto, ip, detail, extraStyle = '') {
     if (eventsTable.children.length > 50) eventsTable.removeChild(eventsTable.lastChild);
 }
 
-// 3. Fetch Statistics from REST API
 async function refreshMetrics() {
     try {
         const res = await fetch(`${API_BASE}/api/logs/stats/overview`);
@@ -76,6 +143,15 @@ async function refreshMetrics() {
             document.getElementById('proto-ssh').textContent = json.data.protocols.ssh || 0;
             document.getElementById('proto-telnet').textContent = json.data.protocols.telnet || 0;
             document.getElementById('proto-http').textContent = json.data.protocols.http || 0;
+
+            if (protocolChartInstance) {
+                protocolChartInstance.data.datasets[0].data = [
+                    json.data.protocols.ssh || 0,
+                    json.data.protocols.telnet || 0,
+                    json.data.protocols.http || 0
+                ];
+                protocolChartInstance.update();
+            }
         }
 
         const credsRes = await fetch(`${API_BASE}/api/logs/stats/credentials?limit=5`);
@@ -85,16 +161,17 @@ async function refreshMetrics() {
             list.innerHTML = credsJson.data.topPasswords.map(p => `
                 <li><span>${p.password}</span> <b>${p.count}</b></li>
             `).join('');
+
+            if (passwordChartInstance) {
+                passwordChartInstance.data.labels = credsJson.data.topPasswords.map(p => p.password);
+                passwordChartInstance.data.datasets[0].data = credsJson.data.topPasswords.map(p => p.count);
+                passwordChartInstance.update();
+            }
         }
     } catch (e) {
         console.error("Failed to fetch metrics:", e);
     }
 }
-
-// Initial loads
-document.getElementById('clear-events').addEventListener('click', () => eventsTable.innerHTML = '');
-refreshMetrics();
-setInterval(refreshMetrics, 15000);
 
 async function loadInitialCommands() {
     try {
@@ -114,4 +191,7 @@ async function loadInitialCommands() {
     }
 }
 
+document.getElementById('clear-events').addEventListener('click', () => eventsTable.innerHTML = '');
+refreshMetrics();
 loadInitialCommands();
+setInterval(refreshMetrics, 15000);
