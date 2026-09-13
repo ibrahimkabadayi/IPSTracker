@@ -3,6 +3,8 @@ import {addTelnetLog, closeLogSession} from "../../db/database.js";
 import {handleConnection} from "../connectionHandler.js";
 import {executeFakeCommand} from "../mockShell.js";
 import {HONEY_TOKENS} from "../honeyTokens.js";
+import {banIpInstantly} from "../../detector/threatSensor.js";
+import {isParsedKey} from "ssh2/lib/protocol/keyParser.js";
 
 const CRLF = '\r\n';
 
@@ -116,6 +118,8 @@ function handleSessionFlow(socket, session, line, io) {
 
         if (isHoneyTokenUsed) {
             console.log(`🔥 [CRITICAL ALERT] HoneyToken Triggered! IP: ${session.ip} is trying the password from the HTTP .env trap!`);
+
+            banIpInstantly(session.ip, 'HoneyToken bait triggered.');
 
             io.emit('threat:alert', {
                 severity: 'CRITICAL',

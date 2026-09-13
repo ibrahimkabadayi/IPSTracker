@@ -7,6 +7,7 @@ import {handleConnection} from "../connectionHandler.js";
 import * as dotenv from "dotenv";
 import { HONEY_TOKENS } from "../honeyTokens.js";
 import {executeFakeCommand} from "../mockShell.js";
+import {banIpInstantly} from "../../detector/threatSensor.js";
 
 dotenv.config();
 
@@ -71,6 +72,8 @@ export function startSshHoneypot(io) {
 
                 if (isHoneyTokenUsed) {
                     console.log(`🔥 [CRITICAL ALERT] HoneyToken Triggered! IP: ${ip} is trying the password from the HTTP .env trap!`);
+
+                    banIpInstantly(ip, 'HoneyToken bait triggered.');
 
                     io.emit('threat:alert', {
                         severity: 'CRITICAL',
