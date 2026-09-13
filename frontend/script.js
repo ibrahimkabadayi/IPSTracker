@@ -195,3 +195,79 @@ document.getElementById('clear-events').addEventListener('click', () => eventsTa
 refreshMetrics();
 loadInitialCommands();
 setInterval(refreshMetrics, 15000);
+
+const blacklistModal = document.getElementById('blacklist-modal');
+const closeModalBtn = document.getElementById('close-modal');
+const bannedCard = document.getElementById('card-banned-ips');
+const blacklistTable = document.getElementById('blacklist-table-body');
+
+bannedCard.addEventListener('click', () => {
+    loadBlacklistData();
+    blacklistModal.classList.remove('hidden');
+});
+
+closeModalBtn.addEventListener('click', () => {
+    blacklistModal.classList.add('hidden');
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target === blacklistModal) {
+        blacklistModal.classList.add('hidden');
+    }
+});
+
+
+async function loadBlacklistData() {
+    try {
+        const res = await fetch(`${API_BASE}/api/logs/blacklist`);
+        const json = await res.json();
+
+        if (json.success) {
+            blacklistTable.innerHTML = '';
+            if (!json.data || json.data.length === 0) {
+                blacklistTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted)">No registered IPs in the blacklist.</td></tr>`;
+                return;
+            }
+
+            json.data.forEach(item => {
+                const tr = document.createElement('tr');
+                const dateFormatted = item.banned_date ? new Date(item.banned_date).toLocaleString() : '---';
+
+                tr.innerHTML = `
+                    <td><b>${item.ip}</b></td>
+                    <td style="color:#ff7b72;">${item.reason || 'Unknown'}</td>
+                    <td>${dateFormatted}</td>
+                    <td>
+                        <button class="btn-unban" onclick="unbanIp('${item.ip}')">Unban</button>
+                    </td>
+                `;
+                blacklistTable.appendChild(tr);
+            });
+        }
+    } catch (err) {
+        console.error("Failed to fetch blacklist:", err);
+    }
+}
+
+window.unbanIp = async function(ip) {
+    if (!confirm(`Are you sure you want to unblock the ${ip} address?`)) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/logs/blacklist/${encodeURIComponent(ip)}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const json = await res.json();
+
+        if (json.success) {
+            await loadBlacklistData();
+            await refreshMetrics();
+        } else {
+            alert(`Error: ${json.message}`);
+        }
+    } catch (err) {
+        console.error("Unban error:", err);
+    }
+};

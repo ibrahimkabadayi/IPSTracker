@@ -4,7 +4,10 @@ import {
     getTopCredentials,
     getTopAttackerIps,
     getRecentCommands,
-    getBlacklistLogs, getAllLogs
+    getAllLogs,
+    getBlacklistedIps,
+    removeBlacklistIp,
+    getThreatfulBlacklistLogs
 } from "../db/database.js";
 
 export const getOverview = (req, res) => {
@@ -48,7 +51,7 @@ export const getCommands = (req, res) => {
 
 export const getBlacklist = (req, res) => {
     try {
-        const list = getBlacklistLogs();
+        const list = getThreatfulBlacklistLogs();
         res.json({ success: true, data: list });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -65,5 +68,29 @@ export const getLogsList = (req, res) => {
         res.json(allLogs);
     } catch(err){
        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+export const getBlacklistLogs = (req, res) => {
+    try{
+        const blacklist = getBlacklistedIps();
+        res.status(200).json({ success: true, data: blacklist });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+export const removeIpFromBlacklist = (req, res) => {
+    try {
+        const { ip } = req.params;
+        const result = removeBlacklistIp(ip);
+
+        if (result.changes > 0) {
+            res.status(200).json({ success: true, message: `IP ${ip} is removed successfully.` });
+        } else {
+            res.status(404).json({ success: false, message: `IP ${ip} not found` });
+        }
+    } catch(err){
+        res.status(500).json({ success: false, error: err.message });
     }
 }

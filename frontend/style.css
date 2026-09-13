@@ -66,3 +66,61 @@ th { background: #21262d; color: var(--text-muted); }
     height: 100%;
     margin-top: 10px;
 }
+/* Tıklanabilir Kart İpucu */
+.clickable-card { cursor: pointer; transition: border-color 0.2s, transform 0.2s; position: relative; }
+.clickable-card:hover { border-color: var(--danger); transform: translateY(-2px); }
+.card-hint { font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px; }
+
+/* Modal Pencereleri */
+.modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 750px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-close-btn {
+    background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer;
+}
+.modal-close-btn:hover { color: #fff; }
+
+.modal-body { padding: 20px; }
+.modal-table { max-height: 350px; }
+
+.btn-unban {
+    background: #3c1e1e;
+    color: #ff7b72;
+    border: 1px solid var(--danger);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.btn-unban:hover {
+    background: var(--danger);
+    color: #fff;
+}
+.hidden {
+    display: none !important;
+}
