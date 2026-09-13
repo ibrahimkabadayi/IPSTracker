@@ -6,7 +6,9 @@ import {
     getCommands,
     getBlacklist,
     getCacheSnapshot,
-    getLogsList
+    getLogsList,
+    getBlacklistLogs,
+    removeIpFromBlacklist
 } from '../controllers/logController.js';
 
 const router = express.Router();
@@ -18,5 +20,7 @@ router.get('/stats/top-ips', getTopIps);
 router.get('/recent-commands', getCommands);
 router.get('/blacklist', getBlacklist);
 router.get('/cache-snapshot', getCacheSnapshot);
+router.get('/blacklist', getBlacklistLogs);
+router.delete('/blacklist/:ip', removeIpFromBlacklist);
 
 export default router;

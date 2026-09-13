@@ -311,11 +311,28 @@ export const getRecentCommands = (limit = 30) => {
     return parsedCommands.slice(0, limit);
 };
 
-export const getBlacklistLogs = () => {
+export const getThreatfulBlacklistLogs = () => {
     return db.prepare(`
         SELECT ip, request_count, scanned_ports, reason, banned_date 
         FROM blacklist 
         WHERE is_threat = 1
         ORDER BY banned_date DESC
     `).all();
+};
+
+export const getBlacklistedIps = () => {
+    const query = db.prepare(`
+        SELECT id, ip, reason, request_count, scanned_ports, banned_date
+        FROM blacklist 
+        ORDER BY banned_date DESC;
+    `);
+    return query.all();
+};
+
+export const removeBlacklistIp = (ip) => {
+    const query = db.prepare(`
+        DELETE FROM blacklist 
+        WHERE ip = ?;
+    `);
+    return query.run(ip);
 };
