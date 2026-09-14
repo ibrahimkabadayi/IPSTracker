@@ -7,7 +7,7 @@ import {
     getAllLogs,
     getBlacklistedIps,
     removeBlacklistIp,
-    getThreatfulBlacklistLogs
+    getIocData
 } from "../db/database.js";
 
 export const getOverview = (req, res) => {
@@ -49,15 +49,6 @@ export const getCommands = (req, res) => {
     }
 };
 
-export const getBlacklist = (req, res) => {
-    try {
-        const list = getThreatfulBlacklistLogs();
-        res.json({ success: true, data: list });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-};
-
 export const getCacheSnapshot = (req, res) => {
     res.json(debugCacheSnapshot());
 };
@@ -92,5 +83,46 @@ export const removeIpFromBlacklist = (req, res) => {
         }
     } catch(err){
         res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+export const exportIocAsJson = (req, res) => {
+    try {
+        const data = getIocData();
+        res.setHeader('Content-Disposition', 'attachment; filename="honeypot-ioc-report.json"');
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(200).send(JSON.stringify(data, null, 2));
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+export const exportIocAsCsv = (req, res) => {
+    try {
+        const data = getIocData();
+
+        const headers = 'Type,Indicator,ThreatLevel,Reason,RequestCount,TargetPorts,BannedDate\n';
+
+        const rows = data.indicators.map(i => {
+            const cleanReason = (i.reason || '').replace(/"/g, '""');
+
+            let cleanPorts = '';
+            if (i.scanned_ports) {
+                try {
+                    const parsed = JSON.parse(i.scanned_ports);
+                    cleanPorts = Array.isArray(parsed) ? parsed.join(';') : String(parsed);
+                } catch {
+                    cleanPorts = String(i.scanned_ports).replace(/[\[\]"']/g, '').replace(/,/g, ';');
+                }
+            }
+
+            return `"${i.type}","${i.value}","${i.threat_level}","${cleanReason}","${i.request_count}","${cleanPorts}","${i.first_banned}"`;
+        }).join('\n');
+
+        res.setHeader('Content-Disposition', 'attachment; filename="honeypot-threat-indicators.csv"');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        return res.status(200).send(headers + rows);
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
     }
 }
