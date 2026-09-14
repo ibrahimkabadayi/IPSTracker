@@ -319,15 +319,6 @@ export const getRecentCommands = (limit = 30) => {
     return parsedCommands.slice(0, limit);
 };
 
-export const getThreatfulBlacklistLogs = () => {
-    return db.prepare(`
-        SELECT ip, request_count, scanned_ports, reason, banned_date 
-        FROM blacklist 
-        WHERE is_threat = 1
-        ORDER BY banned_date DESC
-    `).all();
-};
-
 export const getBlacklistedIps = () => {
     const query = db.prepare(`
         SELECT id, ip, reason, request_count, scanned_ports, banned_date
@@ -343,4 +334,37 @@ export const removeBlacklistIp = (ip) => {
         WHERE ip = ?;
     `);
     return query.run(ip);
+};
+
+export const getIocData = () => {
+    const blacklistRows = db.prepare(`
+        SELECT ip, reason, request_count, scanned_ports, banned_date 
+        FROM blacklist
+        ORDER BY banned_date DESC
+    `).all();
+
+    const topPasswords = db.prepare(`
+        SELECT password, COUNT(*) as count FROM (
+            SELECT attempted_password as password FROM ssh_details WHERE attempted_password IS NOT NULL AND attempted_password != ''
+            UNION ALL
+            SELECT attempted_password as password FROM telnet_details WHERE attempted_password IS NOT NULL AND attempted_password != ''
+        )
+        GROUP BY password
+        ORDER BY count DESC
+        LIMIT 20
+    `).all();
+
+    return {
+        exportedAt: new Date().toISOString(),
+        indicators: blacklistRows.map(b => ({
+            type: 'IPv4',
+            value: b.ip,
+            threat_level: 'HIGH',
+            reason: b.reason,
+            request_count: b.request_count,
+            scanned_ports: b.scanned_ports,
+            first_banned: b.banned_date
+        })),
+        targetedCredentials: topPasswords
+    };
 };

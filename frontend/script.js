@@ -95,24 +95,6 @@ socket.on('threat:auth', (data) => {
     refreshMetrics();
 });
 
-function classifyFrontendCommand(commandText) {
-    if (!commandText) return null;
-    for (const rule of MITRE_RULES) {
-        if (rule.regex.test(commandText)) {
-            return {
-                tag: rule.tag,
-                color: rule.color,
-                technique: rule.technique
-            };
-        }
-    }
-    return {
-        tag: 'EXECUTION',
-        color: '#8b949e',
-        technique: 'T1059 - Command Execution'
-    };
-}
-
 socket.on('threat:command', (data) => {
     let cleanCommand = (data.command || '').trim();
 
@@ -319,3 +301,11 @@ window.unbanIp = async function(ip) {
         console.error("Unban error:", err);
     }
 };
+
+document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+    window.open(`${API_BASE}/api/logs/export/ioc/csv`, '_blank');
+});
+
+document.getElementById('btn-export-json')?.addEventListener('click', () => {
+    window.open(`${API_BASE}/api/logs/export/ioc/json`, '_blank');
+});
