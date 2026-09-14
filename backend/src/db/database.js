@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
+import { classifyCommand } from '../detector/mitreClassifier.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -291,21 +292,28 @@ export const getRecentCommands = (limit = 30) => {
     const parsedCommands = [];
     for (const row of rows) {
         try {
-            const cmds = typeof row.commands_executed === 'string'
+            const rawData = typeof row.commands_executed === 'string'
                 ? JSON.parse(row.commands_executed)
                 : row.commands_executed;
 
-            if (Array.isArray(cmds)) {
-                for (const item of cmds) {
-                    parsedCommands.push({
-                        ip: row.source_ip,
-                        protocol: row.protocol,
-                        command: item.command,
-                        executedAt: item.executed_at || row.started_at
-                    });
-                }
+            const cmdArray = Array.isArray(rawData) ? rawData : [rawData];
+
+            for (const item of cmdArray) {
+                const cmdStr = (typeof item === 'string') ? item : (item.command || '');
+                if (!cmdStr) continue;
+
+                const ttp = classifyCommand(cmdStr);
+
+                parsedCommands.push({
+                    ip: row.source_ip,
+                    protocol: row.protocol,
+                    command: cmdStr,
+                    ttp: ttp,
+                    executedAt: item.executed_at || row.started_at
+                });
             }
-        } catch {}
+        } catch (err) {
+        }
     }
 
     return parsedCommands.slice(0, limit);

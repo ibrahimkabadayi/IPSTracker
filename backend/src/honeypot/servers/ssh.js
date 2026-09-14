@@ -8,6 +8,7 @@ import * as dotenv from "dotenv";
 import { HONEY_TOKENS } from "../honeyTokens.js";
 import {executeFakeCommand} from "../mockShell.js";
 import {banIpInstantly} from "../../detector/threatSensor.js";
+import { classifyCommand } from "../../detector/mitreClassifier.js";
 
 dotenv.config();
 
@@ -220,15 +221,18 @@ export function startSshHoneypot(io) {
                                         type: 'shell'
                                     });
 
+                                    const ttp = classifyCommand(command);
+
                                     io.emit('threat:command', {
                                         protocol: 'ssh',
                                         ip,
                                         command,
                                         type: 'shell',
+                                        ttp: ttp,
                                         timestamp: new Date().toISOString()
                                     });
 
-                                    console.log(`[SSH-COMMAND] IP: ${ip} | Komut: "${command}"`);
+                                    console.log(`[SSH-COMMAND] IP: ${ip} | Command: "${command}"`);
 
                                     const { response, shouldExit } = executeFakeCommand(command, prompt);
                                     stream.write(`\r\n${response}`);

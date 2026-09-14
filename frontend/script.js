@@ -95,13 +95,47 @@ socket.on('threat:auth', (data) => {
     refreshMetrics();
 });
 
+function classifyFrontendCommand(commandText) {
+    if (!commandText) return null;
+    for (const rule of MITRE_RULES) {
+        if (rule.regex.test(commandText)) {
+            return {
+                tag: rule.tag,
+                color: rule.color,
+                technique: rule.technique
+            };
+        }
+    }
+    return {
+        tag: 'EXECUTION',
+        color: '#8b949e',
+        technique: 'T1059 - Command Execution'
+    };
+}
+
 socket.on('threat:command', (data) => {
-    const detail = `Shell Command: <code>${data.command}</code>`;
+    let cleanCommand = (data.command || '').trim();
+
+    const ttp = data.ttp;
+
+    let badgeHtml = '';
+    if (ttp && ttp.tag) {
+        const badgeColor = ttp.color || '#8b949e';
+        badgeHtml = `<span class="ttp-badge" style="background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor};" title="${ttp.technique || ttp.tag}">${ttp.tag}</span>`;
+    }
+
+    const detail = `${badgeHtml}Shell: <code>${cleanCommand}</code>`;
     addRow(data.timestamp, data.protocol, data.ip, detail);
 
     const line = document.createElement('div');
     line.className = 'terminal-line';
-    line.innerHTML = `<span style="color:#8b949e">[${data.protocol}]</span> <span style="color:#58a6ff">${data.ip}:~#</span> ${data.command}`;
+    line.innerHTML = `
+        ${badgeHtml}
+        <span style="color:#8b949e">[${data.protocol}]</span> 
+        <span style="color:#58a6ff">${data.ip}:~#</span> 
+        <span style="color:#7ee787;">${cleanCommand}</span>
+    `;
+
     terminalStream.appendChild(line);
     terminalStream.scrollTop = terminalStream.scrollHeight;
 });
@@ -177,23 +211,37 @@ async function loadInitialCommands() {
     try {
         const res = await fetch(`${API_BASE}/api/logs/recent-commands?limit=15`);
         const json = await res.json();
+
         if (json.success && Array.isArray(json.data)) {
+            terminalStream.innerHTML = '';
+
             json.data.reverse().forEach(item => {
                 const line = document.createElement('div');
                 line.className = 'terminal-line';
-                line.innerHTML = `<span style="color:#8b949e">[${item.protocol}]</span> <span style="color:#58a6ff">${item.ip}:~#</span> ${item.command}`;
+
+                let badgeHtml = '';
+                if (item.ttp) {
+                    badgeHtml = `<span class="ttp-badge" style="background: ${item.ttp.color}22; color: ${item.ttp.color}; border: 1px solid ${item.ttp.color};" title="${item.ttp.technique} (${item.ttp.tactic})">${item.ttp.tag}</span>`;
+                }
+
+                line.innerHTML = `
+                    ${badgeHtml}
+                    <span style="color:#8b949e">[${item.protocol}]</span> 
+                    <span style="color:#58a6ff">${item.ip}:~#</span> 
+                    <span style="color:#7ee787;">${item.command}</span>
+                `;
                 terminalStream.appendChild(line);
             });
             terminalStream.scrollTop = terminalStream.scrollHeight;
         }
     } catch (e) {
-        console.error("Error:", e);
+        console.error("Past commands could not be found:", e);
     }
 }
 
 document.getElementById('clear-events').addEventListener('click', () => eventsTable.innerHTML = '');
-refreshMetrics();
-loadInitialCommands();
+ refreshMetrics();
+ loadInitialCommands();
 setInterval(refreshMetrics, 15000);
 
 const blacklistModal = document.getElementById('blacklist-modal');

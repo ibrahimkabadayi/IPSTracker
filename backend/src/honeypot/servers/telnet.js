@@ -5,6 +5,8 @@ import {executeFakeCommand} from "../mockShell.js";
 import {HONEY_TOKENS} from "../honeyTokens.js";
 import {banIpInstantly} from "../../detector/threatSensor.js";
 import {isParsedKey} from "ssh2/lib/protocol/keyParser.js";
+import http from "http";
+import {classifyCommand} from "../../detector/mitreClassifier.js";
 
 const CRLF = '\r\n';
 
@@ -154,10 +156,13 @@ function handleSessionFlow(socket, session, line, io) {
             return;
         }
 
+        const ttp = classifyCommand(line);
+
         io.emit('threat:command', {
             protocol: 'telnet',
             ip: session.ip,
             command: line,
+            ttp: ttp,
             timestamp: new Date().toISOString()
         });
 
