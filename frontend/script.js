@@ -27,17 +27,27 @@ function initCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 15
+                    }
+                },
                 plugins: {
                     legend: {
                         position: 'right',
+                        align: 'center',
                         labels: {
                             color: '#c9d1d9',
-                            font: { size: 12 },
-                            padding: 15,
-                            boxWidth: 12
+                            font: { size: 12, weight: '600' },
+                            padding: 18,
+                            boxWidth: 14
                         }
                     }
-                }
+                },
+                cutout: '65%'
             }
         });
     }
