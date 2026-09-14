@@ -146,3 +146,23 @@ th { background: #21262d; color: var(--text-muted); }
     font-family: monospace;
     font-size: 12px;
 }
+
+.btn-export {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-export:hover {
+    background: #30363d;
+    color: #58a6ff;
+    border-color: #58a6ff;
+}

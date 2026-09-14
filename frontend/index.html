@@ -14,9 +14,12 @@
         <span class="pulse-icon"></span>
         <h2>HONEYPOT CTI DASHBOARD</h2>
     </div>
-    <div class="status-indicator">
+    <div class="actions-group" style="display: flex; align-items: center; gap: 10px;">
+        <button id="btn-export-csv" class="btn-export">⬇ Export IOC (CSV)</button>
+        <button id="btn-export-json" class="btn-export">⬇ Export IOC (JSON)</button>
         <span id="socket-status" class="badge badge-offline">Offline</span>
     </div>
+
 </header>
 
 <!-- Critical Alert Banner (Triggers on HoneyToken activation) -->
